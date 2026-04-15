@@ -29,7 +29,7 @@ function createBot() {
     const bot = mineflayer.createBot({
         host: 'aemine.vn',
         port: 25565,
-        username: 'winlxag5553', 
+        username: 'winlxag5555', 
         version: '1.12.2',
         viewDistance: 'tiny' // Ép bot giảm tải RAM
     });
