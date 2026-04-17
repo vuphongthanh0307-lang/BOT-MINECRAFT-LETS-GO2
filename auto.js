@@ -31,7 +31,7 @@ function createBot() {
         port: 25565,
         username: 'winlxag5555', 
         version: '1.12.2',
-        viewDistance: 'tiny' // Ép bot giảm tải RAM
+        viewDistance: 'tiny', // Ép bot giảm tải RAM
         checkTimeoutInterval: 90000
     });
 
