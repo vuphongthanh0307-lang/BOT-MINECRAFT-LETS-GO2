@@ -27,7 +27,7 @@ function createBot() {
     const bot = mineflayer.createBot({
         host: 'aemine.vn',
         port: 25565,
-        username: 'TÊN_NICK_CỦA_BRO_ĐIỀN_VÀO_ĐÂY', // <--- NHỚ ĐỔI TÊN NICK Ở ĐÂY NHA BRO
+        username: 'winlxag5555', // <--- NHỚ ĐỔI TÊN NICK Ở ĐÂY NHA BRO
         version: '1.12.2',
         viewDistance: 'tiny', 
         checkTimeoutInterval: 90000 // Giáp chống lag 90s
