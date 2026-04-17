@@ -32,6 +32,7 @@ function createBot() {
         username: 'winlxag5555', 
         version: '1.12.2',
         viewDistance: 'tiny' // Ép bot giảm tải RAM
+        checkTimeoutInterval: 90000
     });
 
     bot.on('spawn', async () => {
