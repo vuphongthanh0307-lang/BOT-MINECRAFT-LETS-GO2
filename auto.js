@@ -21,16 +21,16 @@ let antiAfkLoop;
 let isLoggingIn = false; 
 let isComboRunning = false; 
 let shouldReconnect = true; 
-let failCount = 0; // Bộ đếm chống spam rớt mạng 3h sáng
+let failCount = 0; 
 
 function createBot() {
     const bot = mineflayer.createBot({
         host: 'aemine.vn',
         port: 25565,
-        username: 'winlxag5555', // <--- NHỚ ĐỔI TÊN NICK Ở ĐÂY NHA BRO
+        username: 'winlxag5555', // <--- NHỚ ĐỔI TÊN NICK 
         version: '1.12.2',
         viewDistance: 'tiny', 
-        checkTimeoutInterval: 90000 // Giáp chống lag 90s
+        checkTimeoutInterval: 90000 
     });
 
     bot.on('spawn', async () => {
@@ -65,7 +65,6 @@ function createBot() {
             }
         }
 
-        // Tự động nhận diện tên bot, không dùng cứng tên winlxag5553 nữa
         const isKilledByPlayer = message.includes(bot.username) && 
                                  (message.toLowerCase().includes('slain by') || 
                                   message.toLowerCase().includes('slained by') || 
@@ -77,27 +76,38 @@ function createBot() {
             bot.quit(); 
         }
 
-        // Bắt lỗi ngồi lơ lửng
         if (message.includes('không thể ngồi trong không khí')) {
             setTimeout(() => { if (botState === 'FARMING') bot.chat('/sit'); }, 3000);
         }
     });
 
+    // === ĐÂY LÀ NƠI VÁ CÁI LỖI REJECTED TRANSACTION ===
     bot.on('windowOpen', async (window) => {
+        // Nếu không phải ở Sảnh thì cấm không cho làm gì hết
         if (botState !== 'HUB') return; 
+        
+        // Vừa vào sự kiện là ĐỔI TRẠNG THÁI NGAY LẬP TỨC để KHÓA CỬA
+        botState = 'CLICKING_MENU'; 
+        
         if (clickLoop) clearInterval(clickLoop);
 
         try {
             await sleep(3000); 
+            console.log(`[Menu 1] Nhấp slot 20...`);
             await bot.clickWindow(20, 0, 0); 
+
             await sleep(2500); 
+            console.log(`[Menu 2] Nhấp slot 14...`);
             await bot.clickWindow(14, 0, 0); 
             
+            // Xong xuôi hết mới mở khóa sang FARMING
             botState = 'FARMING'; 
             console.log('[Menu] Thành công! Đợi 15s load map...');
             setTimeout(() => startFarmingProcess(bot), 15000); 
         } catch (err) {
             console.log('Lỗi click GUI:', err.message);
+            // Bị lỗi thì mở khóa về lại HUB để thử lại
+            botState = 'HUB'; 
         }
     });
 
@@ -125,7 +135,6 @@ function createBot() {
 
         failCount++; 
         
-        // Cơ chế Ngủ Đông (Fix lỗi vòng lặp 3h sáng)
         if (failCount >= 5) {
             console.log(`[BÁO ĐỘNG] Rớt mạng ${failCount} lần! Ngủ đông 1 tiếng tránh bị Ban...`);
             failCount = 0; 
@@ -175,7 +184,7 @@ async function startFarmingProcess(bot) {
         await randomSleep(5000, 7000); 
         bot.chat('/sit');
 
-        failCount = 0; // Xóa án tích nếu farm thành công
+        failCount = 0; 
 
         if (antiAfkLoop) clearInterval(antiAfkLoop);
         antiAfkLoop = setInterval(() => {
