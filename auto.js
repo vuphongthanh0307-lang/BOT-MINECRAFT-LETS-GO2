@@ -27,10 +27,11 @@ function createBot() {
     const bot = mineflayer.createBot({
         host: 'aemine.vn',
         port: 25565,
-        username: 'winlxag5555', // <--- NHỚ ĐỔI TÊN NICK 
+        username: 'winlxag5555', 
         version: '1.12.2',
         viewDistance: 'tiny', 
-        checkTimeoutInterval: 90000 
+        checkTimeoutInterval: 90000,
+        respawn: false // [ĐÃ FIX] KHÓA NÚT TỰ ĐỘNG HỒI SINH
     });
 
     bot.on('spawn', async () => {
@@ -71,9 +72,9 @@ function createBot() {
                                   message.toLowerCase().includes('giết'));
         
         if (isKilledByPlayer) {
-            console.log('[RÚT LUI KHẨN CẤP] Bị KS! Tắt bot ngay!');
-            shouldReconnect = false; 
-            bot.quit(); 
+            // [ĐÃ FIX] CHỈ IN CẢNH BÁO, KHÔNG XÀI bot.quit() NỮA
+            console.log('[RÚT LUI KHẨN CẤP] Bị KS! Nằm im giả chết chờ server kick AFK...');
+            shouldReconnect = false; // Đánh dấu để lúc bị kick nó không tự vào lại nữa
         }
 
         if (message.includes('không thể ngồi trong không khí')) {
@@ -81,14 +82,9 @@ function createBot() {
         }
     });
 
-    // === ĐÂY LÀ NƠI VÁ CÁI LỖI REJECTED TRANSACTION ===
     bot.on('windowOpen', async (window) => {
-        // Nếu không phải ở Sảnh thì cấm không cho làm gì hết
         if (botState !== 'HUB') return; 
-        
-        // Vừa vào sự kiện là ĐỔI TRẠNG THÁI NGAY LẬP TỨC để KHÓA CỬA
         botState = 'CLICKING_MENU'; 
-        
         if (clickLoop) clearInterval(clickLoop);
 
         try {
@@ -100,31 +96,32 @@ function createBot() {
             console.log(`[Menu 2] Nhấp slot 14...`);
             await bot.clickWindow(14, 0, 0); 
             
-            // Xong xuôi hết mới mở khóa sang FARMING
             botState = 'FARMING'; 
             console.log('[Menu] Thành công! Đợi 15s load map...');
             setTimeout(() => startFarmingProcess(bot), 15000); 
         } catch (err) {
             console.log('Lỗi click GUI:', err.message);
-            // Bị lỗi thì mở khóa về lại HUB để thử lại
             botState = 'HUB'; 
         }
     });
 
     bot.on('death', async () => {
-        if (!shouldReconnect) return; 
+        // [ĐÃ FIX] KHI CHẾT LÀ NẰM IM RU LUÔN, XÓA HẾT VÒNG LẶP AFK VÀ FARM
+        console.log('[CẢNH BÁO] Bot đã tử trận! Đang nằm phơi xác tại trận địa...');
         isComboRunning = false; 
         bot.clearControlStates(); 
-        await sleep(5000); 
-        startFarmingProcess(bot);
+        if (antiAfkLoop) clearInterval(antiAfkLoop);
+        if (clickLoop) clearInterval(clickLoop);
+        
+        // Không gọi lại hàm startFarmingProcess nữa để nó nằm chết dí đó
     });
 
     bot.on('end', () => {
         if (!shouldReconnect) {
-            console.log('[SHUTDOWN] Đã rút điện bot vì bị KS!');
+            console.log('[SHUTDOWN] Server đã kick nick ra ngoài do AFK/Bị KS!');
             if (antiAfkLoop) clearInterval(antiAfkLoop); 
             if (clickLoop) clearInterval(clickLoop);
-            return; 
+            return; // Dừng hoàn toàn bot, không kết nối lại
         }
 
         botState = 'HUB'; 
