@@ -65,6 +65,12 @@ function createBot() {
             }
         }
 
+        // 1.5. LÌ LỢM ĐĂNG NHẬP CHO TỚI KHI THÀNH CÔNG (Sau Captcha)
+        if (lowerMsg.includes('đăng nhập bằng lệnh: /dn') || lowerMsg.includes('vui lòng đăng nhập')) {
+            console.log(`[Hub] Server vẫn đòi pass! Đang quất lại lệnh login...`);
+            setTimeout(() => bot.chat('/dn Windvu@2_1_9_30849009630'), 1500); 
+        }
+
         // 2. BẢO TRÌ/KICK -> NẰM CHỜ
         if (lowerMsg.includes('kicked from') || lowerMsg.includes('bảo trì') || lowerMsg.includes('đã đóng')) {
             console.log('[Hệ Thống] Phát hiện Bảo Trì/Kick! Đang nằm chờ server tự kéo...');
@@ -161,7 +167,7 @@ function createBot() {
         if (failCount >= 5) {
             console.log(`[BÁO ĐỘNG] Rớt mạng ${failCount} lần! Ngủ đông 1 tiếng tránh bị Ban...`);
             failCount = 0; 
-            setTimeout(createBot, 36000); 
+            setTimeout(createBot, 360000); 
             return;
         }
         console.log(`[Mất mạng] Lần rớt thứ ${failCount}. Đợi ${RECONNECT_DELAY/1000} giây để vào lại...`);
@@ -255,7 +261,7 @@ async function startFarmingProcess(bot) {
         
         console.log('[Farm] Đã nhích đúng vị trí, ngồi xuống nhập định!');
         failCount = 0; 
-
+        
     } catch (err) {
         console.log('[Farm] Lỗi:', err.message);
     } finally {
