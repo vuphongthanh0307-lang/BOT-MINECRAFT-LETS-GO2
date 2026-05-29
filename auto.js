@@ -186,10 +186,10 @@ async function startFarmingProcess(bot) {
         bot.setQuickBarSlot(0); 
         await sleep(2000);
         
-        // bot.chat('/party quit');
-        // await sleep(2000);
-        // bot.chat('/party join 18110998125')
-        // await sleep(2000);
+        bot.chat('/party quit');
+        await sleep(2000);
+        bot.chat('/party join 18110998125')
+        await sleep(2000);
         
         // bot.chat('/spawn');
         // await sleep(3000); 
