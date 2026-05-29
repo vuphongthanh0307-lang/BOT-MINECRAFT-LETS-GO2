@@ -186,24 +186,24 @@ async function startFarmingProcess(bot) {
         bot.setQuickBarSlot(0); 
         await sleep(2000);
         
-        bot.chat('/party quit');
-        await sleep(2000);
-        bot.chat('/party join 18110998125')
-        await sleep(2000);
+        // bot.chat('/party quit');
+        // await sleep(2000);
+        // bot.chat('/party join 18110998125')
+        // await sleep(2000);
         
-        bot.chat('/spawn');
-        await sleep(3000); 
+        // bot.chat('/spawn');
+        // await sleep(3000); 
 
-        console.log('[Farm] Vận nội công Sprint + Nhảy đúng 1 phát...');
-        bot.setControlState('forward', true);
-        bot.setControlState('sprint', true);
-        bot.setControlState('jump', true); 
-        await sleep(500);
-        bot.setControlState('jump', false); 
-        await randomSleep(600, 800); 
-        bot.clearControlStates(); 
-        console.log('[Farm] Tiếp đất mượt mà, đứng yên lấy hơi chuẩn bị múa...');
-        await randomSleep(500, 800);
+        // console.log('[Farm] Vận nội công Sprint + Nhảy đúng 1 phát...');
+        // bot.setControlState('forward', true);
+        // bot.setControlState('sprint', true);
+        // bot.setControlState('jump', true); 
+        // await sleep(500);
+        // bot.setControlState('jump', false); 
+        // await randomSleep(600, 800); 
+        // bot.clearControlStates(); 
+        // console.log('[Farm] Tiếp đất mượt mà, đứng yên lấy hơi chuẩn bị múa...');
+        // await randomSleep(500, 800);
         
         bot.setControlState('sneak', true); 
         await sleep(300); 
@@ -213,20 +213,10 @@ async function startFarmingProcess(bot) {
         await sleep(200);
         bot.setControlState('sneak', false); 
         await sleep(5000); 
-        bot.setControlState('forward', true); 
-        await sleep(500);
-        bot.clearControlStates(); 
-        await sleep(6000); 
 
         bot.chat('/home');
         await sleep(5000); 
         bot.chat('/sit');
-
-        const finalYaw = bot.entity.yaw;
-        const finalPitch = bot.entity.pitch - (20 * Math.PI / 180); 
-        
-        await bot.look(finalYaw, finalPitch, true); 
-        await sleep(300);
         
         console.log('[Farm] Đã nhích đúng vị trí, ngồi xuống nhập định!');
         failCount = 0; 
