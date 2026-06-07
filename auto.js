@@ -2,7 +2,26 @@ const express = require('express');
 const mineflayer = require('mineflayer');
 const readline = require('readline');
 
-const RECONNECT_DELAY = 200000; 
+// ==========================================
+// BĂNG DÍNH 3 LỚP: DÁN MỒM LỖI CHUNK NGỨA MẮT
+// ==========================================
+const originalLog = console.log;
+console.log = function(...args) {
+    if (typeof args[0] === 'string' && args[0].includes('Ignoring block entities')) return;
+    originalLog.apply(console, args);
+};
+const originalWarn = console.warn;
+console.warn = function(...args) {
+    if (typeof args[0] === 'string' && args[0].includes('Ignoring block entities')) return;
+    originalWarn.apply(console, args);
+};
+const originalError = console.error;
+console.error = function(...args) {
+    if (typeof args[0] === 'string' && args[0].includes('Ignoring block entities')) return;
+    originalError.apply(console, args);
+};
+
+const RECONNECT_DELAY = 20000; 
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -22,13 +41,13 @@ let isLoggingIn = false;
 let isComboRunning = false; 
 let isGUIOpen = false; 
 let failCount = 0;
-let antiAfkLoop; // BIẾN DÀNH CHO AUTO KIT
+let isSonarKick = false; // BẢO BỐI VƯỢT ẢI SONAR
 
 function createBot() {
     const bot = mineflayer.createBot({
         host: 'aemine.vn',
         port: 25565,
-        username: 'Fonggggg', 
+        username: 'winlxag5553', 
         version: '1.12.2',
         viewDistance: 'tiny', 
         checkTimeoutInterval: 60000,
@@ -38,8 +57,8 @@ function createBot() {
     currentBot = bot; 
 
     bot.on('message', (jsonMsg) => {
-        if (jsonMsg.toAnsi) console.log(jsonMsg.toAnsi());
-        else console.log(jsonMsg.toString());
+        if (jsonMsg.toAnsi) originalLog('[Chat] ' + jsonMsg.toAnsi());
+        else originalLog('[Chat] ' + jsonMsg.toString());
     });
 
     bot.on('spawn', async () => {
@@ -47,7 +66,7 @@ function createBot() {
             isLoggingIn = true;
             console.log('[Hub] Đã kết nối server, chuẩn bị đăng nhập...');
             await sleep(2000);
-            bot.chat('/dn Windvu@2_1_9_30849009630'); 
+            bot.chat('/dn Windvu@2@1@9@30849009630'); 
             console.log('[Hub] Đã gửi lệnh login! Đang nghe ngóng...');
             botState = 'FIRST_LOGIN';
         }
@@ -65,10 +84,28 @@ function createBot() {
             }
         }
 
-        // 1.5. LÌ LỢM ĐĂNG NHẬP CHO TỚI KHI THÀNH CÔNG (Sau Captcha)
+        // 1.5. LÌ LỢM ĐĂNG NHẬP
         if (lowerMsg.includes('đăng nhập bằng lệnh: /dn') || lowerMsg.includes('vui lòng đăng nhập')) {
-            console.log(`[Hub] Server vẫn đòi pass! Đang quất lại lệnh login...`);
-            setTimeout(() => bot.chat('/dn Windvu@2_1_9_30849009630'), 1500); 
+            setTimeout(() => bot.chat('/dn Windvu@2@1@9@30849009630'), 1500); 
+        }
+
+        // ==========================================
+        // BƯỚC 1: NHẬN DIỆN SONAR ĐANG QUÉT
+        // ==========================================
+        if (lowerMsg.includes('sonar') && lowerMsg.includes('xác minh')) {
+            console.log('>>> [Anti-Bot] Bị Sonar soi! Đứng im như tượng chờ nó cấp giấy chứng nhận...');
+            bot.clearControlStates();
+            botState = 'WAIT_AUTO';
+            isSonarKick = true; // Bật cờ dự phòng
+        }
+
+        // --- BỘ LỌC TỰ ĐỘNG JOIN PARTY ---
+        if (message.includes('/pt join')) {
+            const match = message.match(/\/pt join (\S+)/);
+            if (match) {
+                console.log(`[Party] Phát hiện lời mời từ anh em: ${match[1]}! Đang quất lệnh join...`);
+                setTimeout(() => bot.chat(`/party join ${match[1]}`), 500);
+            }
         }
 
         // 2. BẢO TRÌ/KICK -> NẰM CHỜ
@@ -76,7 +113,6 @@ function createBot() {
             console.log('[Hệ Thống] Phát hiện Bảo Trì/Kick! Đang nằm chờ server tự kéo...');
             botState = 'MAINTENANCE'; 
             isComboRunning = false; 
-            if (antiAfkLoop) clearInterval(antiAfkLoop); // Dọn dẹp Auto Kit
         }
 
         // 3. RÚT LUI NẾU BỊ KS
@@ -91,40 +127,40 @@ function createBot() {
         if (message.includes('không thể ngồi trong không khí')) {
             setTimeout(() => { if (botState === 'FARMING') bot.chat('/sit'); }, 3000);
         }
+
+        // ==============================================================
+        // MẮT THẦN VÀO GAME
+        // ==============================================================
+        if (lowerMsg.includes('vừa tham gia máy chủ') && lowerMsg.includes(bot.username.toLowerCase())) {
+            if (botState !== 'FARMING') {
+                console.log(`[Mắt Thần] Thấy thông báo: ${message}`);
+                console.log('[Mắt Thần] ĐÃ LỌT VÀO CỤM FARM AN TOÀN! Khóa Hub, Bắt đầu múa!');
+                botState = 'FARMING';
+                isComboRunning = false; 
+                startFarmingProcess(bot);
+            }
+        }
     });
 
     // ==========================================
-    // MẮT THẦN ĐỌC TÚI ĐỒ (ĐÃ KHÓA CỨNG KHI FARM)
+    // LA BÀN CHỈ DÙNG ĐỂ CLICK HUB, CẤM MÚA Ở ĐÂY
     // ==========================================
     setInterval(() => {
         if (!currentBot || !currentBot.inventory) return;
         
-        // CHỐT CHẶN: Đang farm thì không thèm check túi đồ nữa, tránh lag múa lại!
         if (botState === 'FARMING') return; 
-        
+
         const items = currentBot.inventory.items();
         const hasCompass = items.some(i => i.name === 'compass');
-        const hasItems = items.length > 0;
 
         if (hasCompass) {
-            if (botState === 'FIRST_LOGIN') {
-                botState = 'IN_HUB'; 
-            }
-
-            if (botState === 'IN_HUB' && !isGUIOpen) {
-                console.log('[Hub] Từ ngoài vào Sảnh! Cầm la bàn đục lỗ...');
+            botState = 'IN_HUB'; 
+            if (!isGUIOpen) {
+                console.log('[Hub] Đang cầm La Bàn Sảnh! Tiến hành click Menu...');
                 currentBot.setQuickBarSlot(4);
                 currentBot.activateItem();
             }
         } 
-        else if (!hasCompass && hasItems) {
-            if (botState === 'FIRST_LOGIN' || botState === 'MAINTENANCE' || botState === 'IN_HUB') {
-                console.log('[Mắt Thần] Không thấy la bàn! Server đã kéo vào Game. Bắt đầu múa!');
-                botState = 'FARMING';
-                isComboRunning = false; 
-                startFarmingProcess(currentBot);
-            }
-        }
     }, 3000); 
 
     bot.on('windowOpen', async (window) => {
@@ -136,7 +172,7 @@ function createBot() {
             await bot.clickWindow(20, 0, 0); 
             await sleep(2000);
             await bot.clickWindow(14, 0, 0); 
-            console.log('[Menu] Đã click xong! Chờ server load map...');
+            console.log('[Menu] Đã click xong! Chờ server bế vào cụm...');
         } catch (err) {
             console.log('Lỗi click GUI:', err.message);
         } finally {
@@ -144,10 +180,25 @@ function createBot() {
         }
     });
 
+    // ==========================================
+    // BƯỚC 2: ĐỌC BẢNG KICK XÁC MINH THÀNH CÔNG
+    // ==========================================
+    bot.on('kicked', (reason) => {
+        let reasonStr = '';
+        try { reasonStr = JSON.stringify(reason); } 
+        catch (e) { reasonStr = reason.toString(); }
+        
+        if (reasonStr.toLowerCase().includes('xác minh') || reasonStr.toLowerCase().includes('thành công') || reasonStr.toLowerCase().includes('vượt qua')) {
+            console.log('>>> [Anti-Bot] Đã đọc được bảng "XÁC MINH THÀNH CÔNG" từ server!');
+            isSonarKick = true; 
+        } else {
+            console.log(`[BỊ KICK] Lý do khác: ${reasonStr}`);
+        }
+    });
+
     bot.on('death', () => {
         bot.clearControlStates();
         isComboRunning = false;
-        if (antiAfkLoop) clearInterval(antiAfkLoop);
 
         if (botState !== 'FARMING') {
             console.log('[CẢNH BÁO] Bot chết ở Sảnh! Đang tự động ấn Hồi Sinh...');
@@ -161,13 +212,34 @@ function createBot() {
         console.log('[SERVER] Đã bị văng hẳn khỏi cụm máy chủ!');
         isLoggingIn = false;
         botState = 'DISCONNECTED'; 
-        if (antiAfkLoop) clearInterval(antiAfkLoop);
+
+        // ==========================================
+        // BƯỚC 3: ĐẾM NGƯỢC 12 GIÂY CHO RENDER KHỎI NGỦ + SERVER KỊP LƯU IP
+        // ==========================================
+        if (isSonarKick) {
+            isSonarKick = false; // Trả lại cờ
+            failCount = 0; // Tẩy trắng rớt mạng
+            console.log(`[Anti-Bot] Đang chờ 12 giây để server cập nhật danh sách...`);
+            
+            let waitTime = 12;
+            const countdownInterval = setInterval(() => {
+                console.log(`... Đang đếm ngược: ${waitTime} giây nữa sẽ vô lại ...`);
+                waitTime--;
+                
+                if (waitTime <= 0) {
+                    clearInterval(countdownInterval);
+                    console.log(`[Anti-Bot] Hết giờ! Phi thẳng vô cụm lượm lúa!!!`);
+                    createBot();
+                }
+            }, 1000); // Lặp lại mỗi 1 giây
+            return; 
+        }
 
         failCount++;
         if (failCount >= 5) {
             console.log(`[BÁO ĐỘNG] Rớt mạng ${failCount} lần! Ngủ đông 1 tiếng tránh bị Ban...`);
             failCount = 0; 
-            setTimeout(createBot, 360000); 
+            setTimeout(createBot, 36000); 
             return;
         }
         console.log(`[Mất mạng] Lần rớt thứ ${failCount}. Đợi ${RECONNECT_DELAY/1000} giây để vào lại...`);
@@ -176,7 +248,7 @@ function createBot() {
 }
 
 // ==================================================
-// KỊCH BẢN MÚA CỦA PHÁP SƯ (TÔI KHÔNG ĐỤNG 1 CHỮ NÀO)
+// KỊCH BẢN MÚA CỦA 5553
 // ==================================================
 async function startFarmingProcess(bot) {
     if (isComboRunning) return; 
@@ -184,84 +256,66 @@ async function startFarmingProcess(bot) {
 
     try {
         bot.setQuickBarSlot(0); 
-        await sleep(50000);
-        
+        await sleep(25000);
+
+        // THÊM CHỜ LỜI MỜI PARTY Ở ĐÂY THEO LỆNH PHÁP SƯ
+        console.log('[Farm] Đang nghe ngóng chờ lời mời Party (3 giây)...');
+        await sleep(3000);
+
         bot.chat('/spawn');
         await sleep(5000); 
 
-        console.log('[Farm] Tới Spawn, bước sang ngang 1 giây né đám đông...');
-        
-        bot.setControlState('right', true); 
-        await sleep(1000); 
-        
-        bot.clearControlStates(); 
-        await sleep(300);
-
-        console.log('[Farm] Lia chuột xéo trái 45 độ và nhảy tới 1 giây...');
-        
+        console.log('[Farm] Tới Spawn rồi, lia chuột 72 độ sang trái...');
         const currentYaw = bot.entity.yaw;
-        const targetYaw = currentYaw + (45 * Math.PI / 180); 
+        const targetYaw = currentYaw + (72 * Math.PI / 180); 
         const currentPitch = bot.entity.pitch; 
         
         await bot.look(targetYaw, currentPitch, true); 
-        await sleep(200); 
-        
-        bot.setControlState('forward', true); 
-        bot.setControlState('sprint', true); 
-        bot.setControlState('jump', true); 
+        await randomSleep(300, 500); 
 
-        await randomSleep(1000, 1200); 
+        console.log('[Farm] Vận nội công Sprint + Nhảy đúng 1 phát...');
+        bot.setControlState('forward', true);
+        bot.setControlState('sprint', true);
         
+        bot.setControlState('jump', true); 
+        await sleep(500); 
+        bot.setControlState('jump', false); 
+        
+        await randomSleep(600, 800); 
         bot.clearControlStates(); 
-        console.log('[Farm] Tiếp đất mượt mà, đứng yên lấy hơi chuẩn bị múa...');
-        await randomSleep(500, 800);
-        
+        console.log('[Farm] Tiếp đất an toàn, chuẩn bị múa...');
+
+        await randomSleep(1500, 2000);
+
         bot.setControlState('sneak', true); 
-        await sleep(300); 
+        await randomSleep(100, 200); 
         
         bot.swingArm('right'); 
-        await sleep(200);
+        await randomSleep(100, 200);
         bot.activateItem(); 
-        await sleep(200);
+        await randomSleep(100, 200);
         bot.activateItem(); 
-        await sleep(200);
+        await randomSleep(100, 200);
         bot.activateItem(); 
-        await sleep(200);
+        await randomSleep(100, 200);
 
         bot.setControlState('sneak', false); 
-
-        await randomSleep(4000, 10000); 
-        bot.setControlState('forward', true); 
-        await sleep(500);
         bot.clearControlStates(); 
-        await sleep(6000); 
+        await randomSleep(2000, 3000); 
 
+        bot.setControlState('forward', true);
+        await sleep(500); 
+        bot.clearControlStates(); 
+        await randomSleep(3000, 5000);
+        
         bot.chat('/home'); 
-        await randomSleep(10000, 12000); 
+        await randomSleep(7000, 9000); 
         
-        console.log('[Farm] Đã load map bãi farm, chuẩn bị nhích bước tới...');
-        bot.clearControlStates(); 
-        
-        console.log('[Farm] Đang lùi xéo bằng phím D + S trong 0.5 giây...');
-        bot.setControlState('forward', true);  
-        bot.setControlState('right', true); 
-        
-        await sleep(200); 
-        bot.clearControlStates(); 
-        await sleep(200); 
-        ;;
-        await sleep(8000);
         bot.chat('/sit');
+        console.log('[Farm] Đã đến bãi, ngồi xuống nhập định!');
 
-        const finalYaw = bot.entity.yaw;
-        const finalPitch = bot.entity.pitch - (20 * Math.PI / 180); 
-        
-        await bot.look(finalYaw, finalPitch, true); 
-        await sleep(300);
-        
-        console.log('[Farm] Đã nhích đúng vị trí, ngồi xuống nhập định!');
         failCount = 0; 
-        
+
     } catch (err) {
         console.log('[Farm] Lỗi:', err.message);
     } finally {
@@ -269,14 +323,9 @@ async function startFarmingProcess(bot) {
     }
 }
 
-// ==========================================
-// TÍNH NĂNG CHAT TỪ REPLIT VÀO GAME
-// ==========================================
+// PHANH ABS CHỐNG MUTE CHAT
 let lastChatTime = 0;
-const rl = readline.createInterface({
-    input: process.stdin,
-    output: process.stdout
-});
+const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
 
 rl.on('line', (input) => {
     if (currentBot) {
