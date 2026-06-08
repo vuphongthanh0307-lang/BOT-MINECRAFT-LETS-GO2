@@ -21,7 +21,7 @@ console.error = function(...args) {
     originalError.apply(console, args);
 };
 
-const RECONNECT_DELAY = 20000; 
+const RECONNECT_DELAY = 30000; 
 
 const app = express();
 const port = process.env.PORT || 3000;
@@ -108,10 +108,10 @@ function createBot() {
             }
         }
 
-        // 2. BẢO TRÌ/KICK -> NẰM CHỜ
+        // 2. BẢO TRÌ/KICK -> ÉP VỀ SẢNH ĐỂ BẤM LA BÀN
         if (lowerMsg.includes('kicked from') || lowerMsg.includes('bảo trì') || lowerMsg.includes('đã đóng')) {
-            console.log('[Hệ Thống] Phát hiện Bảo Trì/Kick! Đang nằm chờ server tự kéo...');
-            botState = 'MAINTENANCE'; 
+            console.log('[Hệ Thống] Phát hiện bị ném ra Sảnh! Tự động lôi la bàn ra đục lỗ vô lại...');
+            botState = 'IN_HUB'; 
             isComboRunning = false; 
         }
 
@@ -143,12 +143,13 @@ function createBot() {
     });
 
     // ==========================================
-    // LA BÀN CHỈ DÙNG ĐỂ CLICK HUB, CẤM MÚA Ở ĐÂY
+    // LA BÀN TỰ ĐỘNG: CỨ Ở HUB LÀ TỰ BẤM
     // ==========================================
     setInterval(() => {
         if (!currentBot || !currentBot.inventory) return;
         
-        if (botState === 'FARMING') return; 
+        // Đang Farm hoặc đang bị Sonar soi thì tuyệt đối không bấm Menu
+        if (botState === 'FARMING' || botState === 'WAIT_AUTO') return; 
 
         const items = currentBot.inventory.items();
         const hasCompass = items.some(i => i.name === 'compass');
@@ -156,7 +157,7 @@ function createBot() {
         if (hasCompass) {
             botState = 'IN_HUB'; 
             if (!isGUIOpen) {
-                console.log('[Hub] Đang cầm La Bàn Sảnh! Tiến hành click Menu...');
+                console.log('[Hub] Đang cầm La Bàn Sảnh! Tiến hành click Menu (Tự túc)...');
                 currentBot.setQuickBarSlot(4);
                 currentBot.activateItem();
             }
@@ -164,7 +165,7 @@ function createBot() {
     }, 3000); 
 
     bot.on('windowOpen', async (window) => {
-        if (isGUIOpen || botState === 'MAINTENANCE') return; 
+        if (isGUIOpen || botState === 'WAIT_AUTO') return; 
         isGUIOpen = true; 
         try {
             console.log('[Menu] Đang mở GUI...');
