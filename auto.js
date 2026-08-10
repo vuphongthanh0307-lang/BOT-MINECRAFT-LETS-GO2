@@ -334,6 +334,15 @@ async function startFarmingProcess(bot) {
         
         console.log('[Farm] Đã nhích đúng vị trí, ngồi xuống nhập định!');
         failCount = 0; 
+        
+        // AUTO KIT TÂN THỦ
+        if (antiAfkLoop) clearInterval(antiAfkLoop);
+        antiAfkLoop = setInterval(() => {
+            if (botState === 'FARMING' && !isComboRunning) {
+                bot.chat('/kit tanthu');
+                console.log(`[${new Date().toLocaleTimeString()}] [Anti-AFK] Đã gõ /kit tanthu!`);
+            }
+        }, 600000);
 
     } catch (err) {
         console.log('[Farm] Lỗi:', err.message);
